@@ -91,9 +91,7 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
 
     @Override
     protected String cleanupLogFormat(String tokenLogFormat) {
-        return makeHeaderNamesLowercaseInLogFormat(
-                tokenLogFormat
-        );
+        return makeHeaderNamesLowercaseInLogFormat(tokenLogFormat);
     }
 
 
@@ -137,7 +135,10 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
         // -------
 //      $bytes_sent
 //      the number of bytes sent to a client
-        parsers.add(new FixedStringTokenParser("$bytes_sent")); // TODO: Implement $bytes_sent token
+        parsers.add(new TokenParser("$bytes_sent",
+                "response.bytes", "BYTES",
+                Casts.STRING_OR_LONG, TokenParser.FORMAT_NON_ZERO_NUMBER));
+
         // -------
 //      $connection
         parsers.add(new FixedStringTokenParser("$connection")); // TODO: Implement $connection token
@@ -160,8 +161,10 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
 
         // -------
 //      $request_length
-        parsers.add(new FixedStringTokenParser("$request_length")); // TODO: Implement $request_length token
 //      request length (including request line, header, and request body)
+        parsers.add(new TokenParser("$request_length",
+                "request.bytes", "BYTES",
+                Casts.STRING_OR_LONG, TokenParser.FORMAT_NON_ZERO_NUMBER));
 
         // -------
 //      $request_time
@@ -180,8 +183,10 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
 
         // -------
 //      $time_local
-        parsers.add(new FixedStringTokenParser("$time_local")); // TODO: Implement $time_local token
 //      local time in the Common Log Format
+        parsers.add(new TokenParser("$time_local",
+                "request.receive.time", "TIME.STAMP",
+                Casts.STRING_ONLY, TokenParser.FORMAT_STANDARD_TIME_US));
 
         // -------
 //      Header lines sent to a client have the prefix “sent_http_”, for example, $sent_http_content_range.
@@ -191,15 +196,23 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
 //      $arg_name
         parsers.add(new FixedStringTokenParser("$arg_name")); // TODO: Implement $arg_name token
 //      argument name in the request line
+        parsers.add(new NamedTokenParser("$arg_([a-z0-9\\-_]*)",
+                "request.header.", "HTTP.HEADER",
+                Casts.STRING_ONLY, TokenParser.FORMAT_STRING));
 
         // -------
 //      $args
-        parsers.add(new FixedStringTokenParser("$args")); // TODO: Implement $args token
 //      arguments in the request line
+        parsers.add(new TokenParser("$args",
+                "request.firstline.uri.query", "HTTP.QUERYSTRING",
+                Casts.STRING_ONLY, TokenParser.FORMAT_NO_SPACE_STRING));
+
         // -------
 //      $query_string
-        parsers.add(new FixedStringTokenParser("$query_string")); // TODO: Implement $query_string token
 //      same as $args
+        parsers.add(new TokenParser("$query_string",
+                "request.firstline.uri.query", "HTTP.QUERYSTRING",
+                Casts.STRING_ONLY, TokenParser.FORMAT_NO_SPACE_STRING));
 
         // -------
 //      $binary_remote_addr
@@ -208,8 +221,10 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
 
         // -------
 //      $body_bytes_sent
-        parsers.add(new FixedStringTokenParser("$body_bytes_sent")); // TODO: Implement $body_bytes_sent token
 //      number of bytes sent to a client, not counting the response header; this variable is compatible with the “%B” parameter of the mod_log_config Apache module
+        parsers.add(new TokenParser("$body_bytes_sent",
+                "response.body.bytes", "BYTES",
+                Casts.STRING_OR_LONG, TokenParser.FORMAT_NUMBER));
 
         // -------
 //      $bytes_sent
@@ -229,7 +244,7 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
         // -------
 //      $content_length
 //      “Content-Length” request header field
-        parsers.add(new TokenParser("\\%\\{([a-z0-9\\-_]*)\\}i",
+        parsers.add(new TokenParser("$content_length",
                 "request.header.content_length", "HTTP.HEADER",
                 Casts.STRING_ONLY, TokenParser.FORMAT_STRING));
 
@@ -265,16 +280,14 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
         // -------
 //      $http_name
 //      arbitrary request header field; the last part of a variable name is the field name converted to lower case with dashes replaced by underscores
-        parsers.add(new NamedTokenParser("\\%\\{([a-z0-9\\-_]*)\\}i",
+        parsers.add(new NamedTokenParser("$http_([a-z0-9\\-_]*)",
                 "request.header.", "HTTP.HEADER",
                 Casts.STRING_ONLY, TokenParser.FORMAT_STRING));
-
 
         // -------
 //      $https
         parsers.add(new FixedStringTokenParser("$https")); // TODO: Implement $https token
 //      “on” if connection operates in SSL mode, or an empty string otherwise
-
 
         // -------
 //      $is_args
@@ -312,7 +325,6 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
         parsers.add(new FixedStringTokenParser("$proxy_protocol_addr")); // TODO: Implement $proxy_protocol_addr token
 //      client address from the PROXY protocol header, or an empty string otherwise (1.5.12)
 //      The PROXY protocol must be previously enabled by setting the proxy_protocol parameter in the listen directive.
-
 
         // -------
 //      $realpath_root
@@ -458,9 +470,8 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
 
         // -------
 //      $status
-        parsers.add(new FixedStringTokenParser("$status")); // TODO: Implement $status token
 //      response status (1.3.2, 1.2.2)
-        parsers.add(new TokenParser("%s",
+        parsers.add(new TokenParser("$status",
                 "request.status.original", "STRING",
                 Casts.STRING_ONLY, TokenParser.FORMAT_NO_SPACE_STRING));
 
@@ -487,7 +498,6 @@ public final class NginxHttpdLogFormatDissector extends TokenFormatDissector {
 //      $time_local
         parsers.add(new FixedStringTokenParser("$time_local")); // TODO: Implement $time_local token
 //      local time in the Common Log Format (1.3.12, 1.2.7)
-
 
         // -------
 //      $uri
