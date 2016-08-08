@@ -412,4 +412,57 @@ public class ApacheHttpdLogParserTest {
 
     // ------------------------------------------
 
+    public static class TestRecord2 {
+        private final Map<String, String> results = new HashMap<>(32);
+
+        @SuppressWarnings("UnusedDeclaration")
+        @Field({
+            "IP:connection.client.host",
+            "HTTP.URI:request.firstline.uri",
+            "HTTP.METHOD:request.firstline.method",
+            "HTTP.PATH:request.firstline.uri.path",
+            "STRING:request.status.last",
+            "BYTES:response.body.bytesclf",
+            "HTTP.URI:request.referer",
+            "HTTP.USERAGENT:request.user-agent",
+            "SECONDS:response.server.processing.time",
+            "MICROSECONDS:server.process.time",
+            "STRING:request.status.last"})
+        public void setValue(final String name, final String value) {
+            results.put(name, value);
+        }
+
+        public Map<String, String> getResults() {
+            return results;
+        }
+    }
+
+    /**
+     * Test of mod_reqtimeout 408 status code
+     */
+    @Test
+    public void test408ModReqTimeout() throws Exception {
+        String line = "200.149.126.2 - - [05/Aug/2016:07:34:00 -0300] "
+        		+ "\"GET /login.php HTTP/1.1\" 200 2732 \"https://example.com/faq.php\" "
+        		+ "\"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:45.0) Gecko/20100101 Firefox/45.0\" "
+        		+ "0/1534";
+        
+        String localLogFormat = "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %T/%D";
+
+        Parser<TestRecord2> parser = new ApacheHttpdLoglineParser<>(TestRecord2.class, localLogFormat);
+
+        TestRecord2 record = new TestRecord2();
+        parser.parse(record, line);
+
+        // We except no exception
+        
+        String line2 = "187.41.80.255 - - [05/Aug/2016:09:32:06 -0300] \"-\" 408 - \"-\" \"-\" 0/14\n";
+        
+        record = new TestRecord2();
+        parser.parse(record, line2);
+        
+        // We also except no exception
+    }
+
+    // ------------------------------------------
 }
